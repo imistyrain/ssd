@@ -39,6 +39,9 @@ what' more, you should import caffe at the beginning of script before import cv2
 src/tcmalloc.cc:284] Attempt to free invalid pointer 0x7ff4821267d0
 ```
 
+2020.11.10 add focalloss layer and shuffle layer
+2020.11.14 fix [bug863: training error: Data layer prefetch queue empty](https://github.com/weiliu89/caffe/issues/863)
+
 ### Preparation
 1. Download [fully convolutional reduced (atrous) VGGNet](https://gist.github.com/weiliu89/2ed6e13bfd5b57cf81d6). By default, we assume the model is stored in `$CAFFE_ROOT/models/VGGNet/`
 2. Download VOC2007 and VOC2012 dataset. By default, we assume the data is stored in `$HOME/data/`

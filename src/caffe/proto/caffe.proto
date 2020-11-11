@@ -437,7 +437,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 147 (last added: recurrent_param)
+// LayerParameter next available layer-specific ID: 148 (last added: recurrent_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -544,8 +544,12 @@ message LayerParameter {
   optional VideoDataParameter video_data_param = 207;
   optional WindowDataParameter window_data_param = 129;
   optional JfdaLossParameter jfda_loss_param = 209;
+  optional FocalLossParameter focal_loss_param = 147;
+  optional ShuffleChannelParameter shuffle_channel_param = 164;
 }
-
+message ShuffleChannelParameter {
+  optional uint32 group = 1[default = 1]; // The number of group
+}
 // Message that stores parameters used to apply transformation
 // to the data layer's data
 message TransformationParameter {
@@ -1648,7 +1652,21 @@ message SoftmaxParameter {
   // Any other axes will be evaluated as independent softmaxes.
   optional int32 axis = 2 [default = 1];
 }
+message FocalLossParameter {
+  enum Engine {
+    DEFAULT = 0;
+    CAFFE = 1;
+    CUDNN = 2;
+  }
+  optional Engine engine = 1 [default = DEFAULT];
 
+  // The axis along which to perform the softmax -- may be negative to index
+  // from the end (e.g., -1 for the last axis).
+  // Any other axes will be evaluated as independent softmaxes.
+  optional int32 axis = 2 [default = 1];
+  optional float alpha = 3 [default = 0.25];
+  optional float gamma = 4 [default = 2.0];
+}
 message TanHParameter {
   enum Engine {
     DEFAULT = 0;

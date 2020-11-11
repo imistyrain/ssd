@@ -188,7 +188,8 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
   // ensure all groups have enough workspace
   size_t total_max_workspace = max_workspace *
                                (this->group_ * CUDNN_STREAMS_PER_GROUP);
-
+  size_t m=32;
+  max_workspace = (max_workspace + m-1) / m * m; //align address to be multiples of m
   // this is the total amount of storage needed over all groups + streams
   if (total_max_workspace > workspaceSizeInBytes) {
     DLOG(INFO) << "Reallocating workspace storage: " << total_max_workspace;
