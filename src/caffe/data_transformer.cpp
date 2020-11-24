@@ -252,6 +252,22 @@ void DataTransformer<Dtype>::Transform(
 }
 
 template<typename Dtype>
+void DataTransformer<Dtype>::Transform(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum,
+               Blob<Dtype>* transformed_blob,
+               RepeatedPtrField<AnnotationGroup>* transformed_anno_group_all,
+               bool* do_mirror) {
+  // Transform datum.
+  NormalizedBBox crop_bbox;
+  Transform(anno_mat, transformed_blob, &crop_bbox, do_mirror);
+
+  // Transform annotation.
+  const bool do_resize = true;
+  // Image size is stored in the cv::Mat instead of AnnotatedDatum
+  TransformAnnotation(anno_mat.cols, anno_mat.rows, anno_datum, do_resize, crop_bbox, *do_mirror,
+                      transformed_anno_group_all);
+}
+
+template<typename Dtype>
 void DataTransformer<Dtype>::Transform(
     const AnnotatedDatum& anno_datum, Blob<Dtype>* transformed_blob,
     RepeatedPtrField<AnnotationGroup>* transformed_anno_group_all) {
@@ -273,11 +289,32 @@ void DataTransformer<Dtype>::Transform(
 }
 
 template<typename Dtype>
+void DataTransformer<Dtype>::Transform(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum,
+               Blob<Dtype>* transformed_blob,
+               vector<AnnotationGroup>* transformed_anno_vec,
+               bool* do_mirror) {
+  RepeatedPtrField<AnnotationGroup> transformed_anno_group_all;
+  Transform(anno_mat, anno_datum, transformed_blob, &transformed_anno_group_all,
+            do_mirror);
+  for (int g = 0; g < transformed_anno_group_all.size(); ++g) {
+    transformed_anno_vec->push_back(transformed_anno_group_all.Get(g));
+  }
+}
+
+template<typename Dtype>
 void DataTransformer<Dtype>::Transform(
     const AnnotatedDatum& anno_datum, Blob<Dtype>* transformed_blob,
     vector<AnnotationGroup>* transformed_anno_vec) {
   bool do_mirror;
   Transform(anno_datum, transformed_blob, transformed_anno_vec, &do_mirror);
+}
+
+template<typename Dtype>
+void DataTransformer<Dtype>::Transform(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum,
+               Blob<Dtype>* transformed_blob,
+               vector<AnnotationGroup>* transformed_anno_vec) {
+  bool do_mirror;
+  Transform(anno_mat, anno_datum, transformed_blob, transformed_anno_vec, &do_mirror);
 }
 
 template<typename Dtype>
@@ -326,6 +363,64 @@ void DataTransformer<Dtype>::TransformAnnotation(
           if (do_resize && param_.has_resize_param()) {
             ExtrapolateBBox(param_.resize_param(), img_height, img_width,
                 crop_bbox, transformed_bbox);
+          }
+        }
+      }
+      // Save for output.
+      if (has_valid_annotation) {
+        transformed_anno_group.set_group_label(anno_group.group_label());
+        transformed_anno_group_all->Add()->CopyFrom(transformed_anno_group);
+      }
+    }
+  } else {
+    LOG(FATAL) << "Unknown annotation type.";
+  }
+}
+
+template<typename Dtype>
+void DataTransformer<Dtype>::TransformAnnotation(int img_width, int img_height,
+                         const AnnotatedDatum& anno_datum, const bool do_resize,
+                         const NormalizedBBox& crop_bbox, const bool do_mirror,
+                         RepeatedPtrField<AnnotationGroup>* transformed_anno_group_all) {
+  if (anno_datum.type() == AnnotatedDatum_AnnotationType_BBOX) {
+    // Go through each AnnotationGroup.
+    for (int g = 0; g < anno_datum.annotation_group_size(); ++g) {
+      const AnnotationGroup& anno_group = anno_datum.annotation_group(g);
+      AnnotationGroup transformed_anno_group;
+      // Go through each Annotation.
+      bool has_valid_annotation = false;
+      for (int a = 0; a < anno_group.annotation_size(); ++a) {
+        const Annotation& anno = anno_group.annotation(a);
+        const NormalizedBBox& bbox = anno.bbox();
+        // Adjust bounding box annotation.
+        NormalizedBBox resize_bbox = bbox;
+        if (do_resize && param_.has_resize_param()) {
+          CHECK_GT(img_height, 0);
+          CHECK_GT(img_width, 0);
+          UpdateBBoxByResizePolicy(param_.resize_param(), img_width, img_height,
+                                   &resize_bbox);
+        }
+        if (param_.has_emit_constraint() &&
+            !MeetEmitConstraint(crop_bbox, resize_bbox,
+                                param_.emit_constraint())) {
+          continue;
+        }
+        NormalizedBBox proj_bbox;
+        if (ProjectBBox(crop_bbox, resize_bbox, &proj_bbox)) {
+          has_valid_annotation = true;
+          Annotation* transformed_anno =
+              transformed_anno_group.add_annotation();
+          transformed_anno->set_instance_id(anno.instance_id());
+          NormalizedBBox* transformed_bbox = transformed_anno->mutable_bbox();
+          transformed_bbox->CopyFrom(proj_bbox);
+          if (do_mirror) {
+            Dtype temp = transformed_bbox->xmin();
+            transformed_bbox->set_xmin(1 - transformed_bbox->xmax());
+            transformed_bbox->set_xmax(1 - temp);
+          }
+          if (do_resize && param_.has_resize_param()) {
+            ExtrapolateBBox(param_.resize_param(), img_height, img_width,
+                            crop_bbox, transformed_bbox);
           }
         }
       }
@@ -410,6 +505,20 @@ void DataTransformer<Dtype>::CropImage(const Datum& datum,
 }
 
 template<typename Dtype>
+cv::Mat DataTransformer<Dtype>::CropImage(const cv::Mat& mat, const NormalizedBBox& bbox) {
+#ifdef USE_OPENCV
+  CHECK(!(param_.force_color() && param_.force_gray()))
+  << "cannot set both force_color and force_gray";
+  // Crop the image.
+  cv::Mat crop_img;
+  CropImage(mat, bbox, &crop_img);
+  return crop_img;
+#else
+  LOG(FATAL) << "Encoded datum requires OpenCV; compile with USE_OPENCV.";
+#endif  // USE_OPENCV
+}
+
+template<typename Dtype>
 void DataTransformer<Dtype>::CropImage(const AnnotatedDatum& anno_datum,
                                        const NormalizedBBox& bbox,
                                        AnnotatedDatum* cropped_anno_datum) {
@@ -424,6 +533,26 @@ void DataTransformer<Dtype>::CropImage(const AnnotatedDatum& anno_datum,
   ClipBBox(bbox, &crop_bbox);
   TransformAnnotation(anno_datum, do_resize, crop_bbox, do_mirror,
                       cropped_anno_datum->mutable_annotation_group());
+}
+
+template<typename Dtype>
+cv::Mat DataTransformer<Dtype>::CropImage(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum, const NormalizedBBox& bbox,
+                  AnnotatedDatum* cropped_anno_datum) {
+  cv::Mat sampled_datum;
+  // Crop the datum.
+  sampled_datum = CropImage(anno_mat, bbox);
+  cropped_anno_datum->mutable_datum()->set_label(anno_datum.datum().label());
+  cropped_anno_datum->set_type(anno_datum.type());
+
+  // Transform the annotation according to crop_bbox.
+  const bool do_resize = false;
+  const bool do_mirror = false;
+  NormalizedBBox crop_bbox;
+  ClipBBox(bbox, &crop_bbox);
+  // Image size is stored in the cv::Mat instead of AnnotatedDatum
+  TransformAnnotation(anno_mat.cols, anno_mat.rows, anno_datum, do_resize, crop_bbox, do_mirror,
+                      cropped_anno_datum->mutable_annotation_group());
+  return sampled_datum;
 }
 
 template<typename Dtype>
@@ -501,6 +630,22 @@ void DataTransformer<Dtype>::ExpandImage(const Datum& datum,
 }
 
 template<typename Dtype>
+cv::Mat DataTransformer<Dtype>::ExpandImage(const cv::Mat& mat, const float expand_ratio,
+                    NormalizedBBox* expand_bbox) {
+  // If datum is encoded, decode and crop the cv::image.
+#ifdef USE_OPENCV
+    CHECK(!(param_.force_color() && param_.force_gray()))
+    << "cannot set both force_color and force_gray";
+    // Expand the image.
+    cv::Mat expand_img;
+    ExpandImage(mat, expand_ratio, expand_bbox, &expand_img);
+    return expand_img;
+#else
+    LOG(FATAL) << "Encoded datum requires OpenCV; compile with USE_OPENCV.";
+#endif  // USE_OPENCV
+}
+
+template<typename Dtype>
 void DataTransformer<Dtype>::ExpandImage(const AnnotatedDatum& anno_datum,
                                          AnnotatedDatum* expanded_anno_datum) {
   if (!param_.has_expand_param()) {
@@ -536,6 +681,43 @@ void DataTransformer<Dtype>::ExpandImage(const AnnotatedDatum& anno_datum,
 }
 
 template<typename Dtype>
+cv::Mat DataTransformer<Dtype>::ExpandImage(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum, AnnotatedDatum& expanded_anno_datum) {
+  if (!param_.has_expand_param()) {
+    expanded_anno_datum.CopyFrom(anno_datum);
+    return anno_mat;
+  }
+  const ExpansionParameter& expand_param = param_.expand_param();
+  const float expand_prob = expand_param.prob();
+  float prob;
+  caffe_rng_uniform(1, 0.f, 1.f, &prob);
+  if (prob > expand_prob) {
+    expanded_anno_datum.CopyFrom(anno_datum);
+    return anno_mat;
+  }
+  const float max_expand_ratio = expand_param.max_expand_ratio();
+  if (fabs(max_expand_ratio - 1.) < 1e-2) {
+    expanded_anno_datum.CopyFrom(anno_datum);
+    return anno_mat;
+  }
+  float expand_ratio;
+  caffe_rng_uniform(1, 1.f, max_expand_ratio, &expand_ratio);
+  // Expand the datum.
+  NormalizedBBox expand_bbox;
+  cv::Mat expanded_anno_mat;
+  expanded_anno_mat = ExpandImage(anno_mat, expand_ratio, &expand_bbox);
+  expanded_anno_datum.mutable_datum()->set_label(anno_datum.datum().label());
+  expanded_anno_datum.set_type(anno_datum.type());
+
+  // Transform the annotation according to crop_bbox.
+  const bool do_resize = false;
+  const bool do_mirror = false;
+  // Image size is stored in the cv::Mat instead of AnnotatedDatum
+  TransformAnnotation(anno_mat.cols, anno_mat.rows, anno_datum, do_resize, expand_bbox, do_mirror,
+                      expanded_anno_datum.mutable_annotation_group());
+  return expanded_anno_mat;
+}
+
+template<typename Dtype>
 void DataTransformer<Dtype>::DistortImage(const Datum& datum,
                                           Datum* distort_datum) {
   if (!param_.has_distort_param()) {
@@ -565,6 +747,36 @@ void DataTransformer<Dtype>::DistortImage(const Datum& datum,
 #endif  // USE_OPENCV
   } else {
     LOG(ERROR) << "Only support encoded datum now";
+  }
+}
+
+template<typename Dtype>
+cv::Mat DataTransformer<Dtype>::DistortImage(const cv::Mat& mat) {
+  return ApplyDistort(mat, param_.distort_param());
+}
+
+template<typename Dtype>
+cv::Mat DataTransformer<Dtype>::GetCvImageFromDatum(const Datum& datum) {
+  cv::Mat cv_img;
+  // If datum is encoded, decode and crop the cv::image.
+  if (datum.encoded()) {
+#ifdef USE_OPENCV
+    CHECK(!(param_.force_color() && param_.force_gray()))
+    << "cannot set both force_color and force_gray";
+    if (param_.force_color() || param_.force_gray()) {
+      // If force_color then decode in color otherwise decode in gray.
+      cv_img = DecodeDatumToCVMat(datum, param_.force_color());
+    } else {
+      cv_img = DecodeDatumToCVMatNative(datum);
+    }
+    // Distort the image.
+    return cv_img;
+#else
+    LOG(FATAL) << "Encoded datum requires OpenCV; compile with USE_OPENCV.";
+#endif  // USE_OPENCV
+  } else {
+    LOG(FATAL) << "Only support encoded datum now";
+    return cv_img;
   }
 }
 

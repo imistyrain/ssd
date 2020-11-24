@@ -1,5 +1,8 @@
 # ssd build across windows、Ubuntu and Mac
 
+## Update
+merge [caffe-ssd-optimized](https://github.com/maidabu/caffe-ssd-optimized) to speedup train preprocess
+
 [SSD](https://github.com/weiliu89/caffe/tree/ssd) is an unified framework for object detection with a single network. You can use the code to train/evaluate a network for object detection task. For more details, please refer to [arXiv paper](http://arxiv.org/abs/1512.02325) and [slide](http://www.cs.unc.edu/~wliu/papers/ssd_eccv2016_slide.pdf). [Original ssd](https://github.com/weiliu89/caffe/tree/ssd) can only be built on ubuntu and used an outdated version caffe.
 
 ## How to build
@@ -41,6 +44,7 @@ src/tcmalloc.cc:284] Attempt to free invalid pointer 0x7ff4821267d0
 
 2020.11.10 add focalloss layer and shuffle layer
 2020.11.14 fix [bug863: training error: Data layer prefetch queue empty](https://github.com/weiliu89/caffe/issues/863)
+2020.12.13 add InterpLayer
 
 ### Preparation
 1. Download [fully convolutional reduced (atrous) VGGNet](https://gist.github.com/weiliu89/2ed6e13bfd5b57cf81d6). By default, we assume the model is stored in `$CAFFE_ROOT/models/VGGNet/`
@@ -118,4 +122,4 @@ src/tcmalloc.cc:284] Attempt to free invalid pointer 0x7ff4821267d0
 
 ## Train your own model
 
-you can reference [ssd-face](https://github.com/imistyrain/ssd-face) if you want to train your model on your own data such like face detection.
+you can reference [ssd-models](https://github.com/imistyrain/ssd-models) if you want to train your model on your own data such like face detection.

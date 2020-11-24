@@ -71,13 +71,24 @@ class DataTransformer {
                  RepeatedPtrField<AnnotationGroup>* transformed_anno_vec);
   void Transform(const AnnotatedDatum& anno_datum,
                  Blob<Dtype>* transformed_blob,
+                 RepeatedPtrField<AnnotationGroup>* transformed_anno_group_all,
+                 bool* do_mirror);
+  void Transform(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum,
+                 Blob<Dtype>* transformed_blob,
                  RepeatedPtrField<AnnotationGroup>* transformed_anno_vec,
                  bool* do_mirror);
   void Transform(const AnnotatedDatum& anno_datum,
                  Blob<Dtype>* transformed_blob,
                  vector<AnnotationGroup>* transformed_anno_vec,
                  bool* do_mirror);
+  void Transform(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum,
+                 Blob<Dtype>* transformed_blob,
+                 vector<AnnotationGroup>* transformed_anno_vec,
+                 bool* do_mirror);
   void Transform(const AnnotatedDatum& anno_datum,
+                 Blob<Dtype>* transformed_blob,
+                 vector<AnnotationGroup>* transformed_anno_vec);
+  void Transform(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum,
                  Blob<Dtype>* transformed_blob,
                  vector<AnnotationGroup>* transformed_anno_vec);
 
@@ -101,34 +112,47 @@ class DataTransformer {
       const NormalizedBBox& crop_bbox, const bool do_mirror,
       RepeatedPtrField<AnnotationGroup>* transformed_anno_group_all);
 
+  void TransformAnnotation(int img_width, int img_height,
+      const AnnotatedDatum& anno_datum, const bool do_resize,
+      const NormalizedBBox& crop_bbox, const bool do_mirror,
+      RepeatedPtrField<AnnotationGroup>* transformed_anno_group_all);
+
   /**
    * @brief Crops the datum according to bbox.
    */
   void CropImage(const Datum& datum, const NormalizedBBox& bbox,
                  Datum* crop_datum);
+  cv::Mat CropImage(const cv::Mat& mat, const NormalizedBBox& bbox);
 
   /**
    * @brief Crops the datum and AnnotationGroup according to bbox.
    */
   void CropImage(const AnnotatedDatum& anno_datum, const NormalizedBBox& bbox,
                  AnnotatedDatum* cropped_anno_datum);
+  cv::Mat CropImage(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum, const NormalizedBBox& bbox,
+                    AnnotatedDatum* cropped_anno_datum);
 
   /**
    * @brief Expand the datum.
    */
   void ExpandImage(const Datum& datum, const float expand_ratio,
                    NormalizedBBox* expand_bbox, Datum* expanded_datum);
+  cv::Mat ExpandImage(const cv::Mat& mat, const float expand_ratio,
+                      NormalizedBBox* expand_bbox);
 
   /**
    * @brief Expand the datum and adjust AnnotationGroup.
    */
   void ExpandImage(const AnnotatedDatum& anno_datum,
                    AnnotatedDatum* expanded_anno_datum);
+  cv::Mat ExpandImage(cv::Mat& anno_mat, const AnnotatedDatum& anno_datum, AnnotatedDatum& expanded_anno_datum);
 
   /**
    * @brief Apply distortion to the datum.
    */
   void DistortImage(const Datum& datum, Datum* distort_datum);
+  cv::Mat DistortImage(const cv::Mat& mat);
+  cv::Mat GetCvImageFromDatum(const Datum& datum);
 
 #ifdef USE_OPENCV
   /**
