@@ -41,7 +41,7 @@ what' more, you should import caffe at the beginning of script before import cv2
 ```
 src/tcmalloc.cc:284] Attempt to free invalid pointer 0x7ff4821267d0
 ```
-
+2021.01.16 add UpsampleLayer from [caffe-segnet-cudnn5](https://github.com/TimoSaemann/caffe-segnet-cudnn5)
 2020.11.10 add focalloss layer and shuffle layer
 2020.11.14 fix [bug863: training error: Data layer prefetch queue empty](https://github.com/weiliu89/caffe/issues/863)
 2020.12.13 add InterpLayer

@@ -437,7 +437,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 149 (last added: recurrent_param)
+// LayerParameter next available layer-specific ID: 151 (last added: recurrent_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -547,6 +547,7 @@ message LayerParameter {
   optional FocalLossParameter focal_loss_param = 147;
   optional ShuffleChannelParameter shuffle_channel_param = 164;
   optional InterpParameter interp_param = 149;
+  optional UpsampleParameter upsample_param = 150;
 }
 message ShuffleChannelParameter {
   optional uint32 group = 1[default = 1]; // The number of group
@@ -1958,4 +1959,23 @@ message PReLUParameter {
 }
 message JfdaLossParameter {
   optional float drop_loss_rate = 1 [default = 0]; // online hard mining drop rate
+}
+message UpsampleParameter {
+  // DEPRECATED. No need to specify upsampling scale factors when
+  // exact output shape is given by upsample_h, upsample_w parameters.
+  optional uint32 scale = 1 [default = 2];
+  // DEPRECATED. No need to specify upsampling scale factors when
+  // exact output shape is given by upsample_h, upsample_w parameters.
+  optional uint32 scale_h = 2;
+  // DEPRECATED. No need to specify upsampling scale factors when
+  // exact output shape is given by upsample_h, upsample_w parameters.
+  optional uint32 scale_w = 3;
+  // DEPRECATED. Specify exact output height using upsample_h. This
+  // parameter only works when scale is 2
+  optional bool pad_out_h = 4 [default = false];
+  // DEPRECATED. Specify exact output width using upsample_w. This
+  // parameter only works when scale is 2
+  optional bool pad_out_w = 5 [default = false];
+  optional uint32 upsample_h = 6;
+  optional uint32 upsample_w = 7;
 }

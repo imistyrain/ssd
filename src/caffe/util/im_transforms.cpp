@@ -23,7 +23,7 @@
 
 namespace caffe {
 
-const float prob_eps = 0.01;
+//const float prob_eps = 0.01;
 
 int roll_weighted_die(const vector<float>& probabilities) {
   vector<float> cumulative;

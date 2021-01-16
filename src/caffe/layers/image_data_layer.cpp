@@ -56,7 +56,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   LOG(INFO) << "Opening file " << source;
   std::ifstream infile(source.c_str());
   string line;
-  size_t pos;
+  //size_t pos;
   size_t label_dim=0;
   bool gfirst=true;
   while (std::getline(infile, line)) {
