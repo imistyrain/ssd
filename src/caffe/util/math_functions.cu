@@ -1,7 +1,7 @@
 #include <math_functions.h>  // CUDA's, not caffe's, for fabs, signbit
-#include <thrust/device_vector.h>
-#include <thrust/functional.h>  // thrust::plus
-#include <thrust/reduce.h>
+// #include <thrust/device_vector.h>
+// #include <thrust/functional.h>  // thrust::plus
+// #include <thrust/reduce.h>
 
 #include <cmath>
 

@@ -2,7 +2,7 @@
 #include <cfloat>
 #include <vector>
 
-#include "thrust/device_vector.h"
+//#include "thrust/device_vector.h"
 
 #include "caffe/filler.hpp"
 #include "caffe/layers/normalize_layer.hpp"

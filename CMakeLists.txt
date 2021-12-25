@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 add_definitions(-std=c++11)
 if(MSVC)
   # CMake 3.4 introduced a WINDOWS_EXPORT_ALL_SYMBOLS target property that makes it possible to
@@ -39,7 +39,7 @@ include(cmake/TargetResolvePrerequesites.cmake)
 
 # ---[ Options
 caffe_option(CPU_ONLY  "Build Caffe without CUDA support" OFF) # TODO: rename to USE_CUDA
-caffe_option(USE_CUDNN "Build Caffe with cuDNN library support" ON IF NOT CPU_ONLY)
+caffe_option(USE_CUDNN "Build Caffe with cuDNN library support" OFF IF NOT CPU_ONLY)
 caffe_option(USE_NCCL "Build Caffe with NCCL library support" OFF)
 if(MSVC)
   # default to static libs
@@ -48,7 +48,7 @@ else()
   caffe_option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 endif()
 caffe_option(BUILD_python "Build Python wrapper" ON)
-set(python_version "2" CACHE STRING "Specify which Python version to use")
+set(python_version "3" CACHE STRING "Specify which Python version to use")
 caffe_option(BUILD_matlab "Build Matlab wrapper" OFF)
 caffe_option(BUILD_docs   "Build documentation" ON IF UNIX OR APPLE)
 caffe_option(BUILD_python_layer "Build the Caffe Python layer" ON)

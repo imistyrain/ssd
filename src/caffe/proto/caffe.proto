@@ -548,6 +548,11 @@ message LayerParameter {
   optional ShuffleChannelParameter shuffle_channel_param = 164;
   optional InterpParameter interp_param = 149;
   optional UpsampleParameter upsample_param = 150;
+  optional CenterLossParameter center_loss_param = 211;
+  optional InnerDistanceParameter inner_distance_param = 213;
+  optional LargeMarginInnerProductParameter largemargin_inner_product_param = 227;
+  optional MarginInnerProductParameter margin_inner_product_param = 232;
+  optional LabelSpecificAddParameter label_specific_add_param = 241;
 }
 message ShuffleChannelParameter {
   optional uint32 group = 1[default = 1]; // The number of group
@@ -671,7 +676,15 @@ message NoiseParameter {
   // Color space conversion
   optional bool convert_to_lab = 13 [default = false];
 }
-
+message CenterLossParameter {
+  optional uint32 num_output = 1; // The number of outputs for the layer
+  optional FillerParameter center_filler = 2; // The filler for the centers
+  // The first axis to be lumped into a single inner product computation;
+  // all preceding axes are retained in the output.
+  // May be negative to index from the end (e.g., -1 for the last axis).
+  optional int32 axis = 3 [default = 1];
+  optional string distance_type = 29 [default = "L2"];
+}
 // Message that stores parameters used by data transformer for distortion policy
 message DistortionParameter {
   // The probability of adjusting brightness.
@@ -1204,6 +1217,27 @@ message InnerProductParameter {
   // of the weight matrix. The weight matrix itself is not going to be transposed
   // but rather the transfer flag of operations will be toggled accordingly.
   optional bool transpose = 6 [default = false];
+  optional bool normalize = 7 [default = false];
+}
+
+message InnerDistanceParameter {
+  optional uint32 num_output = 1; // The number of outputs for the layer
+  optional bool bias_term = 2 [default = true]; // whether to have bias terms
+  optional FillerParameter weight_filler = 3; // The filler for the weight
+  optional FillerParameter bias_filler = 4; // The filler for the bias
+
+  // The first axis to be lumped into a single inner product computation;
+  // all preceding axes are retained in the output.
+  // May be negative to index from the end (e.g., -1 for the last axis).
+  optional int32 axis = 5 [default = 1];
+  // Specify whether to transpose the weight matrix or not.
+  // If transpose == true, any operations will be performed on the transpose
+  // of the weight matrix. The weight matrix itself is not going to be transposed
+  // but rather the transfer flag of operations will be toggled accordingly.
+  optional bool transpose = 6 [default = false];
+  optional string distance_type = 7 [default = "L2"];
+  optional bool normalize = 8 [default = false];
+  optional bool update_center_only = 9 [default = false];
 }
 
 message InputParameter {
@@ -1618,6 +1652,8 @@ message ScaleParameter {
   // may be more efficient).  Initialized with bias_filler (defaults to 0).
   optional bool bias_term = 4 [default = false];
   optional FillerParameter bias_filler = 5;
+  optional float min_value = 6;
+  optional float max_value = 7;
 }
 
 message SigmoidParameter {
@@ -1978,4 +2014,54 @@ message UpsampleParameter {
   optional bool pad_out_w = 5 [default = false];
   optional uint32 upsample_h = 6;
   optional uint32 upsample_w = 7;
+}
+
+message LargeMarginInnerProductParameter {
+  optional uint32 num_output = 1; // The number of outputs
+  enum LargeMarginType {
+    SINGLE = 0;
+    DOUBLE = 1;
+    TRIPLE = 2;
+    QUADRUPLE = 3;
+  }
+  optional LargeMarginType type = 2 [default = SINGLE]; // m in the L-Softmax loss
+  optional FillerParameter weight_filler = 3; // The filler for the weight
+  optional int32 axis = 4 [default = 1];
+  // base, gamma, power and lambda_min are parameters for exponential lambda descent
+  optional float base = 5 [default = 1];
+  optional float gamma = 6 [default = 0];
+  optional float power = 7 [default = 1];
+  optional int32 iteration = 8 [default = 0];
+  optional float lambda_min = 9 [default = 0];
+}
+message MarginInnerProductParameter {
+  optional uint32 num_output = 1; // The number of outputs for the layer
+  enum MarginType {
+    SINGLE = 0;
+    DOUBLE = 1;
+    TRIPLE = 2;
+    QUADRUPLE = 3;
+  }
+  optional MarginType type = 2 [default = SINGLE]; 
+  optional FillerParameter weight_filler = 3; // The filler for the weight
+
+  // The first axis to be lumped into a single inner product computation;
+  // all preceding axes are retained in the output.
+  // May be negative to index from the end (e.g., -1 for the last axis).
+  optional int32 axis = 4 [default = 1];
+  optional float base = 5 [default = 1];
+  optional float gamma = 6 [default = 0];
+  optional float power = 7 [default = 1];
+  optional int32 iteration = 8 [default = 0];
+  optional float lambda_min = 9 [default = 0];
+}
+message LabelSpecificAddParameter {
+  optional float bias = 1 [default = 0.0];
+  optional bool transform_test = 2 [default = false];
+  optional float bias_base = 3 [default = 0.0];
+  optional float bias_gamma = 4 [default = 0.0];
+  optional float bias_power = 5 [default = 1.0];
+  optional float bias_min = 6 [default =0.0];
+  optional float bias_max = 7 [default =0.0];
+  optional uint32 iteration = 8 [default = 0];
 }

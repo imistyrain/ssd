@@ -1,7 +1,7 @@
 #ifdef USE_CUDNN
 #include <vector>
 
-#include "thrust/device_vector.h"
+//#include "thrust/device_vector.h"
 
 #include "caffe/layers/cudnn_softmax_layer.hpp"
 
